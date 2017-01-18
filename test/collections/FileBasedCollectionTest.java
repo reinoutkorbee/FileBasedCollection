@@ -49,6 +49,17 @@ public class FileBasedCollectionTest {
 	}
 	
 	@Test
+	public void testAddAll_FBC() {
+		final int max = 10;
+		FileBasedCollection<Integer> check = new FileBasedCollection<>();
+		for(int i = 1; i <= max ; i++) {
+			check.add(i);
+		}
+		assertTrue(coll.addAll(check));
+		assertEquals(10, coll.size());
+	}
+	
+	@Test
 	public void testIsEmpty() {
 		assertTrue(coll.isEmpty());
 	}
