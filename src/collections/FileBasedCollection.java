@@ -46,7 +46,7 @@ import org.xerial.snappy.SnappyOutputStream;
  */
 public final class FileBasedCollection<E extends Serializable & Comparable<E>> extends AbstractCollection<E> implements Closeable {
 
-
+　
 	/**
 	 * Keeps track of the number of elements in this collection.
 	 */
@@ -69,6 +69,14 @@ public final class FileBasedCollection<E extends Serializable & Comparable<E>> e
 
 	private Store<E> store;
 
+	private static final int CHUNK_SIZE = 100;
+	
+	/**
+	 * Default constructor
+	 */
+	public FileBasedCollection() {
+		this(CHUNK_SIZE);
+	}
 
 	/**
 	 * Constructor to set the chunk size to a custom value.
@@ -94,7 +102,7 @@ public final class FileBasedCollection<E extends Serializable & Comparable<E>> e
 		});
 	}
 
-
+　
 	/**
 	 * Call this method to shutdown the file streams orderly after the collection isn't needed anymore.
 	 * The FileBasedCollection on which this method is called is unusable afterwards.
@@ -134,9 +142,8 @@ public final class FileBasedCollection<E extends Serializable & Comparable<E>> e
 	}
 
 	/**
-	 * Default size() implementation which returns an int. With very large collections
-	 * with a size larger then can fit in an int, which can happen if there are Integer.MAX_VALUE chunks with
-	 * Integer.MAX_VALUE elements per chunk, the return value is unreliable.
+	 * Default size() implementation which down casts the real size (long) to an int for interface compatibility.
+	 * This number is unreliable for very large collections.
 	 */
 	@Override
 	public int size() {
@@ -145,7 +152,7 @@ public final class FileBasedCollection<E extends Serializable & Comparable<E>> e
 	
 	/**
 	 * This method is useful if the collection is very large because then the default size() implementation
-	 * downcasts to an int and looses information.
+	 * down casts to an int and looses information.
 	 * 
 	 * @return The real size of this collection as long
 	 */
@@ -154,7 +161,7 @@ public final class FileBasedCollection<E extends Serializable & Comparable<E>> e
 	}
 	
 	/**
-	 * Remove all is implemented as a copy operation. All items in this collection not 
+	 * The removeAll is implemented as a copy operation. All items in this collection not 
 	 * in the provided collection c, are copied to a new collection. The cache of the current 
 	 * collection is replaced with the cache of the new collection.   
 	 */
@@ -189,6 +196,11 @@ public final class FileBasedCollection<E extends Serializable & Comparable<E>> e
         return false;
     }
 	
+	/**
+	 * The retainAll is implemented as a copy operation. All items in this collection also 
+	 * in the provided collection c, are copied to a new collection. The cache of the current 
+	 * collection is replaced with the cache of the new collection.   
+	 */
 	@Override
 	public boolean retainAll(Collection<?> c) {
 		if(c == null || c == this) {
@@ -248,7 +260,21 @@ public final class FileBasedCollection<E extends Serializable & Comparable<E>> e
 	@Override
 	public boolean addAll(Collection<? extends E> c) {
 		if(c instanceof FileBasedCollection) {
-			throw new UnsupportedOperationException("addAll(FileBasedCollection)");
+			FileBasedCollection<? extends E> other = (FileBasedCollection<? extends E>) c;
+			boolean modified = false;
+			try(FileBasedIterator<? extends E> iter = (FileBasedIterator<? extends E>) other.iterator()) {
+				while(iter.hasNext()) {
+					E next = iter.next();
+					if(add(next)) {
+						modified = true;
+					}
+				}
+			} catch (IOException e) {
+				other.close();
+				close();
+				throw new RuntimeException(e);
+			} 
+			return modified;
 		} else {
 			return super.addAll(c);
 		}
@@ -347,7 +373,7 @@ public final class FileBasedCollection<E extends Serializable & Comparable<E>> e
 		}
 	}
 
-
+　
 	private static class Store<E extends Serializable> implements Closeable {
 		private final File file;
 		private final ObjectOutputStream outputStream;
