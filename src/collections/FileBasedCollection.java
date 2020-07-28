@@ -40,6 +40,10 @@ import org.xerial.snappy.SnappyOutputStream;
  * the java.io.tmp directory. The snappy DLL file can't be unloaded and therefore can't be deleted,
  * even though the Snappy library registers a shutdown hook for delete on exit. 
  * <br><br>
+ * Note 3: Sorting is done through a TreeSet. This is a very efficient sorting but duplicates are not tolerated. 
+ * Duplicates are eliminated. This can be circumvented by implementing the Comparable interface for the items in the
+ * collection.
+ * <br><br>
  * The Windows Users/xxx/AppDate/Local/Temp directory can be cleaned with the Windows "Disk Cleanup" utility.
  * Running this utility will clean up all resources from the FileBasedCollection.
  * 
